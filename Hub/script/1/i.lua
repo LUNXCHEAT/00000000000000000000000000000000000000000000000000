@@ -74,43 +74,45 @@ local RunService        = game:GetService("RunService")
 local LocalPlayer = game.Players.LocalPlayer
 local Mouse       = LocalPlayer:GetMouse()
 
-if CoreGui:FindFirstChild("LunxAdvanced") then
-    CoreGui.LunxAdvanced:Destroy()
-end
-if CoreGui:FindFirstChild("LunxAdvancedTooltips") then
-    CoreGui.LunxAdvancedTooltips:Destroy()
-end
-if CoreGui:FindFirstChild("LunxKeySystem") then
-    CoreGui.LunxKeySystem:Destroy()
+-- Temizlik
+for _, name in ipairs({"LunxAdvanced", "LunxAdvancedTooltips", "LunxKeySystem", "LunxMascot"}) do
+    local old = CoreGui:FindFirstChild(name)
+    if old then old:Destroy() end
 end
 
 local function GetTheme()
     return Themes[ActiveThemeName] or Themes["Scout"]
 end
 
+-- Geliştirilmiş Tween Fonksiyonu (Parent kontrolü ve pcall korumalı)
 local function Tween(obj, props, duration, style, direction)
+    if not obj or not obj.Parent then return nil end
     local info = TweenInfo.new(
         duration or 0.2,
         style or Enum.EasingStyle.Quint,
         direction or Enum.EasingDirection.Out
     )
-    local tw = TweenService:Create(obj, info, props)
-    tw:Play()
-    return tw
+    local ok, tw = pcall(function()
+        local t = TweenService:Create(obj, info, props)
+        t:Play()
+        return t
+    end)
+    return ok and tw or nil
 end
 
+-- Geliştirilmiş Create Fonksiyonu (Hata korumalı)
 local function Create(class, props, children)
     local inst = Instance.new(class)
     for k, v in pairs(props or {}) do
         if k ~= "Parent" then
-            inst[k] = v
+            pcall(function() inst[k] = v end)
         end
     end
     for _, child in ipairs(children or {}) do
-        child.Parent = inst
+        pcall(function() child.Parent = inst end)
     end
     if props and props.Parent then
-        inst.Parent = props.Parent
+        pcall(function() inst.Parent = props.Parent end)
     end
     return inst
 end
@@ -227,19 +229,19 @@ local function RunKeySystem(onSuccess)
     })
     Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = submitBtn })
 
-    Tween(overlay, { BackgroundTransparency = 0.45 }, 0.4)
+    Tween(overlay, { BackgroundTransparency = 0.45 }, 0.4, Enum.EasingStyle.Sine)
     card.Position = UDim2.fromScale(0.5, 0.65)
     card.BackgroundTransparency = 1
-    Tween(card, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, 0.55, Enum.EasingStyle.Back)
+    Tween(card, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, 0.55, Enum.EasingStyle.Quint)
 
     local function Shake()
         local base = UDim2.fromScale(0.5, 0.5)
         for i = 1, 6 do
             local offset = (i % 2 == 0) and 8 or -8
-            Tween(card, { Position = base + UDim2.new(0, offset, 0, 0) }, 0.04, Enum.EasingStyle.Linear)
+            Tween(card, { Position = base + UDim2.new(0, offset, 0, 0) }, 0.04, Enum.EasingStyle.Sine)
             task.wait(0.04)
         end
-        Tween(card, { Position = base }, 0.1)
+        Tween(card, { Position = base }, 0.15, Enum.EasingStyle.Quint)
     end
 
     local verifying = false
@@ -250,11 +252,11 @@ local function RunKeySystem(onSuccess)
 
         if entered == CORRECT_KEY then
             errorLabel.Text = ""
-            Tween(submitBtn, { BackgroundColor3 = theme.AccentSecondary }, 0.15)
+            Tween(submitBtn, { BackgroundColor3 = theme.AccentSecondary }, 0.15, Enum.EasingStyle.Sine)
             submitBtn.Text = "Access Granted"
             task.wait(0.35)
-            Tween(card, { Position = UDim2.fromScale(0.5, 0.35), BackgroundTransparency = 1 }, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-            Tween(overlay, { BackgroundTransparency = 1 }, 0.45)
+            Tween(card, { Position = UDim2.fromScale(0.5, 0.35), BackgroundTransparency = 1 }, 0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+            Tween(overlay, { BackgroundTransparency = 1 }, 0.45, Enum.EasingStyle.Sine)
             task.wait(0.5)
             keyGui:Destroy()
             KeySystemPassed = true
@@ -262,9 +264,9 @@ local function RunKeySystem(onSuccess)
         else
             errorLabel.Text = "Invalid key. Please try again."
             Shake()
-            Tween(inputOuter, { BackgroundColor3 = theme.Error }, 0.1)
+            Tween(inputOuter, { BackgroundColor3 = theme.Error }, 0.1, Enum.EasingStyle.Sine)
             task.wait(0.2)
-            Tween(inputOuter, { BackgroundColor3 = theme.SurfaceAlt }, 0.25)
+            Tween(inputOuter, { BackgroundColor3 = theme.SurfaceAlt }, 0.25, Enum.EasingStyle.Sine)
             keyInput.Text = ""
             verifying = false
         end
@@ -276,10 +278,10 @@ local function RunKeySystem(onSuccess)
     end)
 
     submitBtn.MouseEnter:Connect(function()
-        Tween(submitBtn, { BackgroundColor3 = theme.AccentSecondary }, 0.12)
+        Tween(submitBtn, { BackgroundColor3 = theme.AccentSecondary }, 0.12, Enum.EasingStyle.Sine)
     end)
     submitBtn.MouseLeave:Connect(function()
-        Tween(submitBtn, { BackgroundColor3 = theme.Accent }, 0.12)
+        Tween(submitBtn, { BackgroundColor3 = theme.Accent }, 0.12, Enum.EasingStyle.Sine)
     end)
 end
 
@@ -292,6 +294,7 @@ local library = {
     ScreenGui = nil,
     MainFrame = nil,
     Mascot = nil,
+    MascotGui = nil,
     Visible = false,
     ActiveModule = "Hub Alpha",
 }
@@ -307,11 +310,13 @@ task.spawn(function()
             local color = Color3.fromHSV(hue, 1, 1)
             for frame, v in pairs(ColorElements) do
                 if v.Enabled then
-                    if frame:IsA("Frame") then
-                        frame.BackgroundColor3 = color
-                    elseif frame:IsA("ImageLabel") or frame:IsA("ImageButton") then
-                        frame.ImageColor3 = color
-                    end
+                    pcall(function()
+                        if frame:IsA("Frame") then
+                            frame.BackgroundColor3 = color
+                        elseif frame:IsA("ImageLabel") or frame:IsA("ImageButton") then
+                            frame.ImageColor3 = color
+                        end
+                    end)
                 end
             end
         end
@@ -328,6 +333,7 @@ function library:GetXY(GuiObject)
 end
 
 function library:RegisterThemeTarget(instance, key)
+    if not instance then return end
     table.insert(library._themeTargets, { Instance = instance, Key = key })
 end
 
@@ -337,40 +343,73 @@ function library:ApplyTheme(themeName)
     end
     local t = GetTheme()
 
-    for _, entry in ipairs(library._themeTargets) do
-        local inst, key = entry.Instance, entry.Key
+    -- Statik hedefleri güncelle ve ölü olanları temizle
+    for i = #library._themeTargets, 1, -1 do
+        local entry = library._themeTargets[i]
+        local inst = entry.Instance
         if inst and inst.Parent then
-            local color = t[key]
+            local color = t[entry.Key]
             if color then
-                if inst:IsA("Frame") or inst:IsA("TextButton") or inst:IsA("TextLabel") or inst:IsA("TextBox") or inst:IsA("ScrollingFrame") then
-                    if key:find("Text") then
-                        inst.TextColor3 = color
+                pcall(function()
+                    if entry.Key == "MascotImage" then
+                        if inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
+                            inst.Image = color
+                        end
+                    elseif entry.Key == "Text" or entry.Key == "TextMuted" then
+                        if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+                            inst.TextColor3 = color
+                        elseif inst:IsA("UIStroke") then
+                            inst.Color = color
+                        end
+                    elseif entry.Key == "Border" then
+                        if inst:IsA("UIStroke") then
+                            inst.Color = color
+                        else
+                            inst.BackgroundColor3 = color
+                        end
                     else
-                        inst.BackgroundColor3 = color
+                        if inst:IsA("UIStroke") then
+                            inst.Color = color
+                        elseif inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
+                            inst.ImageColor3 = color
+                        elseif inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+                            inst.BackgroundColor3 = color
+                        elseif inst:IsA("Frame") or inst:IsA("ScrollingFrame") then
+                            inst.BackgroundColor3 = color
+                        end
                     end
-                elseif inst:IsA("UIStroke") then
-                    inst.Color = color
-                elseif inst:IsA("ImageLabel") or inst:IsA("ImageButton") then
-                    if key == "MascotImage" then
-                        inst.Image = color
-                    else
-                        inst.ImageColor3 = color
-                    end
-                end
+                end)
             end
+        else
+            table.remove(library._themeTargets, i)
         end
     end
 
-    if library.Mascot then
-        library.Mascot.Image = t.MascotImage
+    -- Mascot'u güncelle
+    if library.Mascot and library.Mascot.Parent then
+        pcall(function()
+            library.Mascot.Image = t.MascotImage
+        end)
     end
 
+    -- Dropdown elementlerini güncelle
+    for _, tr in pairs(library._dropdownTracker) do
+        if tr.updateTheme then
+            pcall(tr.updateTheme)
+        end
+    end
+
+    -- Edit Modu kapalıysa aktif elementleri tema rengine çek
     if not EditOpened then
         for frame, v in pairs(ColorElements) do
             if v.Enabled and v.Type ~= "Toggle" then
-                if frame:IsA("Frame") then
-                    Tween(frame, { BackgroundColor3 = t.Accent }, 0.2)
-                end
+                pcall(function()
+                    if frame:IsA("Frame") then
+                        Tween(frame, { BackgroundColor3 = t.Accent }, 0.25, Enum.EasingStyle.Sine)
+                    elseif frame:IsA("ImageLabel") or frame:IsA("ImageButton") then
+                        Tween(frame, { ImageColor3 = t.Accent }, 0.25, Enum.EasingStyle.Sine)
+                    end
+                end)
             end
         end
     end
@@ -385,19 +424,34 @@ function library:SetVisible(state)
         library.MainFrame.Visible = true
         library.MainFrame.Size = UDim2.new(0, 450, 0, 280)
         library.MainFrame.BackgroundTransparency = 1
+        
         Tween(library.MainFrame, {
             Size = UDim2.new(0, 450, 0, 321),
             BackgroundTransparency = 0,
-        }, 0.35, Enum.EasingStyle.Back)
+        }, 0.35, Enum.EasingStyle.Quint)
+        
         if library.Mascot then
-            library.Mascot.ImageTransparency = 1
             library.Mascot.Visible = true
-            Tween(library.Mascot, { ImageTransparency = 0, Size = UDim2.new(0, 72, 0, 72) }, 0.4, Enum.EasingStyle.Back)
+            library.Mascot.ImageTransparency = 1
+            library.Mascot.Size = UDim2.new(0, 40, 0, 40)
+            Tween(library.Mascot, { 
+                ImageTransparency = 0, 
+                Size = UDim2.new(0, 80, 0, 80) 
+            }, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
         end
     else
         if library.Mascot then
-            Tween(library.Mascot, { ImageTransparency = 1, Size = UDim2.new(0, 50, 0, 50) }, 0.2)
+            Tween(library.Mascot, { 
+                ImageTransparency = 1, 
+                Size = UDim2.new(0, 40, 0, 40) 
+            }, 0.3, Enum.EasingStyle.Sine)
+            task.delay(0.3, function()
+                if not library.Visible and library.Mascot then
+                    library.Mascot.Visible = false
+                end
+            end)
         end
+        
         Tween(library.MainFrame, {
             Size = UDim2.new(0, 450, 0, 280),
             BackgroundTransparency = 0.3,
@@ -426,9 +480,9 @@ function library:SwitchModule(moduleName)
                 if show then
                     c.Visible = true
                     c.BackgroundTransparency = 1
-                    Tween(c, { BackgroundTransparency = 0 }, 0.25)
+                    Tween(c, { BackgroundTransparency = 0 }, 0.25, Enum.EasingStyle.Sine)
                 else
-                    Tween(c, { BackgroundTransparency = 1 }, 0.2)
+                    Tween(c, { BackgroundTransparency = 1 }, 0.2, Enum.EasingStyle.Sine)
                     task.delay(0.2, function()
                         if library.ActiveModule ~= name and c.Parent then
                             c.Visible = false
@@ -493,7 +547,7 @@ function library:Window(Info)
                 if hovered then
                     tip.Visible = true
                     tip.BackgroundTransparency = 1
-                    Tween(tip, { BackgroundTransparency = 0 }, 0.15)
+                    Tween(tip, { BackgroundTransparency = 0 }, 0.15, Enum.EasingStyle.Sine)
                 end
             end)
         end)
@@ -524,25 +578,32 @@ function library:Window(Info)
     library:RegisterThemeTarget(main, "Background")
     library:RegisterThemeTarget(mainStroke, "Border")
 
+    -- BAĞIMSIZ MASCOT OLUŞTURMA (Sağ Alt Köşe)
+    local mascotGui = Create("ScreenGui", {
+        Name = "LunxMascot",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Parent = CoreGui,
+    })
+    library.MascotGui = mascotGui
+
     local mascot = Create("ImageLabel", {
         Name = "Mascot",
         BackgroundTransparency = 1,
         Image = theme.MascotImage,
         AnchorPoint = Vector2.new(1, 1),
-        Position = UDim2.new(1, 8, 1, 8),
-        Size = UDim2.new(0, 72, 0, 72),
+        Position = UDim2.new(1, -20, 1, -20),
+        Size = UDim2.new(0, 80, 0, 80),
         ZIndex = 10,
         ImageTransparency = 1,
         Visible = false,
-        Parent = main,
+        Parent = mascotGui,
     })
-    
-    -- Kütüphanenin Create fonksiyonunu atlayıp direkt saf Instance.new kullanıyoruz:
     local ratio = Instance.new("UIAspectRatioConstraint")
     ratio.AspectRatio = 1
     ratio.Parent = mascot
-
     library.Mascot = mascot
+    library:RegisterThemeTarget(mascot, "MascotImage")
 
     local topbar = Create("Frame", {
         Name = "Topbar",
@@ -630,8 +691,8 @@ function library:Window(Info)
                 ZIndex = 6,
                 Parent = topbar,
             })
-            btn.MouseEnter:Connect(function() Tween(btn, { ImageColor3 = theme.Warning }, 0.12) end)
-            btn.MouseLeave:Connect(function() Tween(btn, { ImageColor3 = theme.Text }, 0.12) end)
+            btn.MouseEnter:Connect(function() Tween(btn, { ImageColor3 = theme.Warning }, 0.12, Enum.EasingStyle.Sine) end)
+            btn.MouseLeave:Connect(function() Tween(btn, { ImageColor3 = theme.Text }, 0.12, Enum.EasingStyle.Sine) end)
             return btn
         else
             local btn = Create("TextButton", {
@@ -646,8 +707,8 @@ function library:Window(Info)
                 ZIndex = 6,
                 Parent = topbar,
             })
-            btn.MouseEnter:Connect(function() Tween(btn, { TextColor3 = theme.Error }, 0.12) end)
-            btn.MouseLeave:Connect(function() Tween(btn, { TextColor3 = theme.Text }, 0.12) end)
+            btn.MouseEnter:Connect(function() Tween(btn, { TextColor3 = theme.Error }, 0.12, Enum.EasingStyle.Sine) end)
+            btn.MouseLeave:Connect(function() Tween(btn, { TextColor3 = theme.Text }, 0.12, Enum.EasingStyle.Sine) end)
             return btn
         end
     end
@@ -711,7 +772,7 @@ function library:Window(Info)
         if not EditOpened then
             for frame, v in pairs(ColorElements) do
                 if v.Enabled and frame:IsA("Frame") then
-                    Tween(frame, { BackgroundColor3 = t.Accent }, 0.15)
+                    Tween(frame, { BackgroundColor3 = t.Accent }, 0.15, Enum.EasingStyle.Sine)
                 end
             end
         else
@@ -837,31 +898,36 @@ function library:Window(Info)
             end
             for _, v in pairs(scrollTabs:GetChildren()) do
                 if v:IsA("Frame") and v ~= tabBtn then
-                    Tween(v.TabFrame, { BackgroundTransparency = 0.92 }, 0.15)
-                    Tween(v.TabFrame.UIStroke, { Transparency = 0.6 }, 0.15)
-                    Tween(v.TabFrame.TextLabel, { TextColor3 = GetTheme().TextMuted }, 0.15)
+                    local tf = v:FindFirstChild("TabFrame")
+                    if tf then
+                        Tween(tf, { BackgroundTransparency = 0.92 }, 0.15, Enum.EasingStyle.Sine)
+                        local s = tf:FindFirstChildOfClass("UIStroke")
+                        if s then Tween(s, { Transparency = 0.6 }, 0.15, Enum.EasingStyle.Sine) end
+                        local l = tf:FindFirstChildOfClass("TextLabel")
+                        if l then Tween(l, { TextColor3 = GetTheme().TextMuted }, 0.15, Enum.EasingStyle.Sine) end
+                    end
                 end
             end
-            Tween(tabFrame, { BackgroundTransparency = 0.75 }, 0.2)
-            Tween(tabStroke, { Transparency = 0.1, Color = GetTheme().Accent }, 0.2)
-            Tween(tabLabel, { TextColor3 = GetTheme().Text }, 0.2)
+            Tween(tabFrame, { BackgroundTransparency = 0.75 }, 0.2, Enum.EasingStyle.Quint)
+            Tween(tabStroke, { Transparency = 0.1, Color = GetTheme().Accent }, 0.2, Enum.EasingStyle.Sine)
+            Tween(tabLabel, { TextColor3 = GetTheme().Text }, 0.2, Enum.EasingStyle.Sine)
             leftContainer.Visible = true
             rightContainer.Visible = true
             leftContainer.BackgroundTransparency = 1
             rightContainer.BackgroundTransparency = 1
-            Tween(leftContainer, { BackgroundTransparency = 0 }, 0.25)
-            Tween(rightContainer, { BackgroundTransparency = 0 }, 0.25)
+            Tween(leftContainer, { BackgroundTransparency = 0 }, 0.25, Enum.EasingStyle.Sine)
+            Tween(rightContainer, { BackgroundTransparency = 0 }, 0.25, Enum.EasingStyle.Sine)
         end
 
         tabClick.MouseButton1Click:Connect(selectTab)
         tabFrame.MouseEnter:Connect(function()
             if TabSelected ~= tabFrame then
-                Tween(tabFrame, { BackgroundTransparency = 0.85 }, 0.12)
+                Tween(tabFrame, { BackgroundTransparency = 0.85 }, 0.12, Enum.EasingStyle.Sine)
             end
         end)
         tabFrame.MouseLeave:Connect(function()
             if TabSelected ~= tabFrame then
-                Tween(tabFrame, { BackgroundTransparency = 0.92 }, 0.12)
+                Tween(tabFrame, { BackgroundTransparency = 0.92 }, 0.12, Enum.EasingStyle.Sine)
             end
         end)
 
@@ -891,7 +957,7 @@ function library:Window(Info)
             })
             Create("UICorner", { CornerRadius = UDim.new(0, 5), Parent = sectionFrame })
             Create("UIStroke", { Color = th.Border, Parent = sectionFrame })
-            Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3), Parent = sectionFrame })
+            local listLayout = Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3), Parent = sectionFrame })
             Create("UIPadding", { PaddingTop = UDim.new(0, 26), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), Parent = sectionFrame })
 
             Create("TextLabel", {
@@ -908,22 +974,15 @@ function library:Window(Info)
                 Parent = section,
             })
 
-            local function resizeSection()
-                local h = 26
-                local layout = sectionFrame:FindFirstChildOfClass("UIListLayout")
-                local pad = layout and layout.Padding.Offset or 0
-                local count = 0
-                for _, ch in sectionFrame:GetChildren() do
-                    if ch:IsA("Frame") then
-                        h += ch.Size.Y.Offset
-                        count += 1
-                    end
-                end
-                h += math.max(0, count - 1) * pad + 4
-                Tween(sectionFrame, { Size = UDim2.new(1, 0, 0, h) }, 0.2)
-                Tween(section, { Size = UDim2.new(1, 0, 0, h + 4) }, 0.2)
+            -- OTOMATİK BOYUTLANDIRMA (Stabilite için UIListLayout AbsoluteContentSize kullanıldı)
+            local function updateSectionSize()
+                local h = listLayout.AbsoluteContentSize.Y + 8
+                Tween(sectionFrame, { Size = UDim2.new(1, 0, 0, h) }, 0.25, Enum.EasingStyle.Quint)
+                Tween(section, { Size = UDim2.new(1, 0, 0, h + 4) }, 0.25, Enum.EasingStyle.Quint)
             end
-            sectionFrame.ChildAdded:Connect(resizeSection)
+            
+            task.defer(updateSectionSize)
+            listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSectionSize)
 
             function sectionApi:Label(Info)
                 Info = Info or {}
@@ -941,8 +1000,10 @@ function library:Window(Info)
                 if Info.Tooltip then AddTooltip(lbl, Info.Tooltip) end
                 local api = {}
                 function api:Set(d)
-                    lbl.Text = d.Text or lbl.Text
-                    lbl.TextColor3 = d.Color or lbl.TextColor3
+                    pcall(function()
+                        lbl.Text = d.Text or lbl.Text
+                        lbl.TextColor3 = d.Color or lbl.TextColor3
+                    end)
                 end
                 return api
             end
@@ -977,8 +1038,8 @@ function library:Window(Info)
                     toggled = v
                     if Info.Flag then library.Flags[Info.Flag] = v end
                     ColorElements[track].Enabled = v
-                    Tween(knob, { Position = v and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6) }, 0.18, Enum.EasingStyle.Back)
-                    Tween(track, { BackgroundColor3 = v and GetTheme().Accent or GetTheme().Border }, 0.18)
+                    Tween(knob, { Position = v and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6) }, 0.2, Enum.EasingStyle.Quint)
+                    Tween(track, { BackgroundColor3 = v and GetTheme().Accent or GetTheme().Border }, 0.2, Enum.EasingStyle.Sine)
                     pcall(Info.Callback, v)
                 end
                 click.MouseButton1Click:Connect(function() api:Set(not toggled) end)
@@ -1004,15 +1065,15 @@ function library:Window(Info)
                 Create("UICorner", { CornerRadius = UDim.new(0, 5), Parent = btn })
                 Create("UIStroke", { Color = th2.Border, Parent = btn })
                 btn.MouseEnter:Connect(function()
-                    Tween(btn, { BackgroundColor3 = GetTheme().Accent, TextColor3 = Color3.fromRGB(20, 20, 20) }, 0.15)
+                    Tween(btn, { BackgroundColor3 = GetTheme().Accent, TextColor3 = Color3.fromRGB(20, 20, 20) }, 0.15, Enum.EasingStyle.Sine)
                 end)
                 btn.MouseLeave:Connect(function()
-                    Tween(btn, { BackgroundColor3 = GetTheme().Surface, TextColor3 = GetTheme().Text }, 0.15)
+                    Tween(btn, { BackgroundColor3 = GetTheme().Surface, TextColor3 = GetTheme().Text }, 0.15, Enum.EasingStyle.Sine)
                 end)
                 btn.MouseButton1Click:Connect(function()
                     Tween(btn, { Size = UDim2.new(0.97, 0, 0, 26) }, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
                     task.delay(0.08, function()
-                        Tween(btn, { Size = UDim2.new(1, 0, 0, 28) }, 0.12, Enum.EasingStyle.Back)
+                        Tween(btn, { Size = UDim2.new(1, 0, 0, 28) }, 0.15, Enum.EasingStyle.Back)
                     end)
                     task.spawn(function() pcall(Info.Callback) end)
                 end)
@@ -1056,7 +1117,7 @@ function library:Window(Info)
                     val = math.clamp(math.floor(v), min, max)
                     if Info.Flag then library.Flags[Info.Flag] = val end
                     local scale = (val - min) / (max - min)
-                    Tween(inner, { Size = UDim2.new(scale, 0, 1, 0) }, 0.12)
+                    Tween(inner, { Size = UDim2.new(scale, 0, 1, 0) }, 0.15, Enum.EasingStyle.Quint)
                     valBox.Text = tostring(val) .. (Info.Postfix or "")
                     task.spawn(function() pcall(Info.Callback, val) end)
                 end
@@ -1089,58 +1150,73 @@ function library:Window(Info)
                 local dropH = 0
                 local th2 = GetTheme()
 
-                local row = Create("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), ClipsDescendants = false, Parent = sectionFrame })
+                local row = Create("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), ClipsDescendants = false, Parent = sectionFrame, ZIndex = 1 })
                 Create("TextLabel", {
                     BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = Info.Text or "Dropdown",
                     TextColor3 = th2.Text, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left,
-                    Size = UDim2.new(1, -20, 0, 28), Position = UDim2.new(0, 4, 0, 0), Parent = row,
+                    Size = UDim2.new(1, -20, 0, 28), Position = UDim2.new(0, 4, 0, 0), Parent = row, ZIndex = 2,
                 })
                 local arrow = Create("TextLabel", {
                     BackgroundTransparency = 1, Text = "›", Font = Enum.Font.GothamBold,
                     TextColor3 = th2.TextMuted, TextSize = 14, Rotation = 90,
-                    Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -16, 0, 7), Parent = row,
+                    Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -16, 0, 7), Parent = row, ZIndex = 2,
                 })
                 
-                -- Container'ı hep Visible tutuyoruz, ClipsDescendants kapalıyken dışarı taşmasını engelliyor
                 local container = Create("Frame", {
                     BackgroundColor3 = th2.Surface, BackgroundTransparency = 0.05,
                     ClipsDescendants = true, Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0, 28), Parent = row,
-                    Visible = true,
+                    Visible = true, ZIndex = 5,
                 })
                 Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = container })
                 Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = container })
+                Create("UIStroke", { Color = th2.Border, Parent = container })
 
                 local selectedLabel = Create("TextLabel", {
                     BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = Info.Default or "Select...",
                     TextColor3 = th2.TextMuted, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
-                    Size = UDim2.new(1, -8, 0, 28), Position = UDim2.new(0, 8, 0, 0), Parent = row,
+                    Size = UDim2.new(1, -8, 0, 28), Position = UDim2.new(0, 8, 0, 0), Parent = row, ZIndex = 2,
                 })
 
                 local headerBtn = Create("TextButton", { BackgroundTransparency = 1, Text = "", Size = UDim2.new(1, 0, 0, 28), ZIndex = 3, Parent = row })
 
                 local trackerIdx = #library._dropdownTracker + 1
+                local optionButtons = {}
+                
                 library._dropdownTracker[trackerIdx] = {
                     isOpened = function() return opened end,
                     close = function()
                         if not opened then return end
                         opened = false
-                        Tween(row, { Size = UDim2.new(1, 0, 0, 28) }, 0.2)
-                        Tween(container, { Size = UDim2.new(1, 0, 0, 0) }, 0.2)
-                        Tween(arrow, { Rotation = 90 }, 0.2)
-                        resizeSection()
+                        Tween(row, { Size = UDim2.new(1, 0, 0, 28) }, 0.25, Enum.EasingStyle.Quint)
+                        Tween(container, { Size = UDim2.new(1, 0, 0, 0) }, 0.25, Enum.EasingStyle.Quint)
+                        Tween(arrow, { Rotation = 90 }, 0.25, Enum.EasingStyle.Quint)
                     end,
+                    updateTheme = function()
+                        local t = GetTheme()
+                        pcall(function()
+                            container.BackgroundColor3 = t.Surface
+                            local cs = container:FindFirstChildOfClass("UIStroke")
+                            if cs then cs.Color = t.Border end
+                            arrow.TextColor3 = opened and t.Accent or t.TextMuted
+                            selectedLabel.TextColor3 = t.TextMuted
+                            for _, opt in pairs(optionButtons) do
+                                if opt and opt.Parent then opt.TextColor3 = t.TextMuted end
+                            end
+                        end)
+                    end
                 }
 
                 local api = {}
                 function api:Add(text)
                     dropH += 26
                     local opt = Create("TextButton", {
-                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "  " + text, -- Eğer + işareti hata verirse "  " .. text yapabilirsin
+                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "  " .. text,
                         TextColor3 = th2.TextMuted, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
-                        Size = UDim2.new(1, 0, 0, 26), Parent = container,
+                        Size = UDim2.new(1, 0, 0, 26), Parent = container, ZIndex = 6,
                     })
-                    opt.MouseEnter:Connect(function() Tween(opt, { TextColor3 = GetTheme().Text }, 0.1) end)
-                    opt.MouseLeave:Connect(function() Tween(opt, { TextColor3 = GetTheme().TextMuted }, 0.1) end)
+                    table.insert(optionButtons, opt)
+                    opt.MouseEnter:Connect(function() Tween(opt, { TextColor3 = GetTheme().Text }, 0.1, Enum.EasingStyle.Sine) end)
+                    opt.MouseLeave:Connect(function() Tween(opt, { TextColor3 = GetTheme().TextMuted }, 0.1, Enum.EasingStyle.Sine) end)
                     opt.MouseButton1Click:Connect(function()
                         selectedLabel.Text = text
                         if Info.Flag then library.Flags[Info.Flag] = text end
@@ -1153,6 +1229,7 @@ function library:Window(Info)
                     for _, c in container:GetChildren() do
                         if c:IsA("TextButton") then c:Destroy() end
                     end
+                    optionButtons = {}
                     dropH = 0
                     for _, v in (d.List or list) do api:Add(v) end
                 end
@@ -1162,21 +1239,17 @@ function library:Window(Info)
                 headerBtn.MouseButton1Click:Connect(function()
                     opened = not opened
                     if opened then
-                        for _, tr in pairs(library._dropdownTracker) do
-                            if tr.isOpened() and tr.close ~= library._dropdownTracker[trackerIdx].close then
+                        for i, tr in pairs(library._dropdownTracker) do
+                            if i ~= trackerIdx and tr.isOpened() then
                                 tr.close()
                             end
                         end
                     end
                     
                     local targetH = opened and dropH or 0
-                    Tween(row, { Size = UDim2.new(1, 0, 0, 28 + (opened and dropH or 0)) }, 0.22, Enum.EasingStyle.Quint)
-                    Tween(container, {
-                        Size = UDim2.new(1, 0, 0, targetH),
-                    }, 0.22, Enum.EasingStyle.Quint)
-                    
-                    Tween(arrow, { Rotation = opened and -90 or 90, TextColor3 = opened and GetTheme().Accent or GetTheme().TextMuted }, 0.22)
-                    resizeSection()
+                    Tween(row, { Size = UDim2.new(1, 0, 0, 28 + targetH) }, 0.3, Enum.EasingStyle.Quint)
+                    Tween(container, { Size = UDim2.new(1, 0, 0, targetH) }, 0.3, Enum.EasingStyle.Quint)
+                    Tween(arrow, { Rotation = opened and -90 or 90, TextColor3 = opened and GetTheme().Accent or GetTheme().TextMuted }, 0.3, Enum.EasingStyle.Quint)
                 end)
 
                 if Info.Flag then
@@ -1352,29 +1425,5 @@ function library:Window(Info)
 
     return window
 end
-
---[[RunKeySystem(function()
-    local Win = library:Window({ Text = "Lunx Advanced" })
-
-    local SettingsTab = Win:Tab({ Text = "Hub Settings" })
-    SettingsTab:Select()
-
-    local themeSection = SettingsTab:Section({ Text = "Appearance", Side = "Left" })
-    themeSection:ThemeDropdown({ Text = "UI Theme", Flag = "SelectedTheme" })
-    themeSection:CountDropdown({
-        Text = "Hub Module",
-        Modules = { "Hub Alpha", "Hub Beta", "Hub Gamma" },
-        Default = "Hub Alpha",
-        Flag = "ActiveHub",
-        Callback = function(name) print("[Lunx] Switched to:", name) end,
-    })
-
-    library:ApplyTheme(ActiveThemeName)
-    library:SwitchModule("Hub Alpha")
-end)]]
-
-
-
-
 
 return library
