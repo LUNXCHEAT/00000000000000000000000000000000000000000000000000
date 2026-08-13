@@ -1086,7 +1086,7 @@ function library:Window(Info)
                 Info = Info or {}
                 local list = Info.List or {}
                 local opened = false
-                local dropH = 0 -- Başlangıç yüksekliği 0 olmalı ki kapalıyken yer kaplamasın
+                local dropH = 0
                 local th2 = GetTheme()
 
                 local row = Create("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), ClipsDescendants = false, Parent = sectionFrame })
@@ -1101,11 +1101,10 @@ function library:Window(Info)
                     Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -16, 0, 7), Parent = row,
                 })
                 
-                -- Container başlangıçta kapalı ve boyutu 0 olmalı
                 local container = Create("Frame", {
-                    BackgroundColor3 = th2.Surface, BackgroundTransparency = 1,
+                    BackgroundColor3 = th2.Surface, BackgroundTransparency = 0.05, -- Arkaplanı görünür yapıldı
                     ClipsDescendants = true, Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0, 28), Parent = row,
-                    Visible = false, -- Kapalıyken tamamen gizle
+                    Visible = false,
                 })
                 Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = container })
                 Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = container })
@@ -1124,10 +1123,12 @@ function library:Window(Info)
                     close = function()
                         if not opened then return end
                         opened = false
-                        container.Visible = false
                         Tween(row, { Size = UDim2.new(1, 0, 0, 28) }, 0.2)
-                        Tween(container, { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1 }, 0.2)
+                        Tween(container, { Size = UDim2.new(1, 0, 0, 0) }, 0.2)
                         Tween(arrow, { Rotation = 90 }, 0.2)
+                        task.delay(0.2, function()
+                            if not opened then container.Visible = false end
+                        end)
                         resizeSection()
                     end,
                 }
@@ -1136,7 +1137,7 @@ function library:Window(Info)
                 function api:Add(text)
                     dropH += 26
                     local opt = Create("TextButton", {
-                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = text,
+                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "  " .. text, -- Metne hafif boşluk eklendi
                         TextColor3 = th2.TextMuted, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
                         Size = UDim2.new(1, 0, 0, 26), Parent = container,
                     })
@@ -1175,7 +1176,6 @@ function library:Window(Info)
                     Tween(row, { Size = UDim2.new(1, 0, 0, 28 + (opened and dropH or 0)) }, 0.22, Enum.EasingStyle.Quint)
                     Tween(container, {
                         Size = UDim2.new(1, 0, 0, targetH),
-                        BackgroundTransparency = opened and 0.05 or 1,
                     }, 0.22, Enum.EasingStyle.Quint)
                     
                     if not opened then
@@ -1196,7 +1196,7 @@ function library:Window(Info)
                 end
                 return api
             end
-
+            
             function sectionApi:ThemeDropdown(Info)
                 Info = Info or {}
                 local themeNames = {}
