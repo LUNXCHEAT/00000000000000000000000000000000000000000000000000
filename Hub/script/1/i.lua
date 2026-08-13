@@ -1081,14 +1081,12 @@ function library:Window(Info)
                 if Info.Flag then library._flagSetters[Info.Flag] = setValue end
                 task.defer(function() pcall(Info.Callback, val) end)
             end
-
-            function sectionApi:Dropdown(Info)
+function sectionApi:Dropdown(Info)
                 Info = Info or {}
                 local list = Info.List or {}
                 local opened = false
-                local dropH = 28
+                local dropH = 0 -- Başlangıç yüksekliği 0 olmalı ki kapalıyken yer kaplamasın
                 local th2 = GetTheme()
-                local savedSizes = {}
 
                 local row = Create("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), ClipsDescendants = false, Parent = sectionFrame })
                 Create("TextLabel", {
@@ -1101,9 +1099,12 @@ function library:Window(Info)
                     TextColor3 = th2.TextMuted, TextSize = 14, Rotation = 90,
                     Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -16, 0, 7), Parent = row,
                 })
+                
+                -- Container başlangıçta kapalı ve boyutu 0 olmalı
                 local container = Create("Frame", {
                     BackgroundColor3 = th2.Surface, BackgroundTransparency = 1,
-                    ClipsDescendants = true, Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0, 28), Parent = row,
+                    ClipsDescendants = true, Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0, 28), Parent = row,
+                    Visible = false, -- Kapalıyken tamamen gizle
                 })
                 Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = container })
                 Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = container })
@@ -1122,8 +1123,9 @@ function library:Window(Info)
                     close = function()
                         if not opened then return end
                         opened = false
+                        container.Visible = false
                         Tween(row, { Size = UDim2.new(1, 0, 0, 28) }, 0.2)
-                        Tween(container, { Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1 }, 0.2)
+                        Tween(container, { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1 }, 0.2)
                         Tween(arrow, { Rotation = 90 }, 0.2)
                         resizeSection()
                     end,
@@ -1151,7 +1153,7 @@ function library:Window(Info)
                     for _, c in container:GetChildren() do
                         if c:IsA("TextButton") then c:Destroy() end
                     end
-                    dropH = 28
+                    dropH = 0
                     for _, v in (d.List or list) do api:Add(v) end
                 end
 
@@ -1165,13 +1167,22 @@ function library:Window(Info)
                                 tr.close()
                             end
                         end
+                        container.Visible = true
                     end
-                    local targetH = opened and dropH or 28
-                    Tween(row, { Size = UDim2.new(1, 0, 0, 28 + (opened and dropH - 28 or 0)) }, 0.22, Enum.EasingStyle.Quint)
+                    
+                    local targetH = opened and dropH or 0
+                    Tween(row, { Size = UDim2.new(1, 0, 0, 28 + (opened and dropH or 0)) }, 0.22, Enum.EasingStyle.Quint)
                     Tween(container, {
                         Size = UDim2.new(1, 0, 0, targetH),
                         BackgroundTransparency = opened and 0.05 or 1,
                     }, 0.22, Enum.EasingStyle.Quint)
+                    
+                    if not opened then
+                        task.delay(0.22, function()
+                            if not opened then container.Visible = false end
+                        end)
+                    end
+
                     Tween(arrow, { Rotation = opened and -90 or 90, TextColor3 = opened and GetTheme().Accent or GetTheme().TextMuted }, 0.22)
                     resizeSection()
                 end)
