@@ -537,10 +537,8 @@ function library:Window(Info)
         Parent = main,
     })
     
-    -- Otomatik oran koruma (Genişlik ve yükseklik oranını sabitlemek için)
     Create("UIAspectRatioConstraint", {
-        AspectRatio = 1, -- Görselin en/boy oranı (Kare ise 1 bırakabilirsin)
-        AspectType = Enum.AspectType.FitWithParentMeasurement,
+        AspectRatio = 1,
         Parent = mascot,
     })
 
