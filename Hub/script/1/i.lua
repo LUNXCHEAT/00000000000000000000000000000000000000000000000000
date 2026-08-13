@@ -1081,7 +1081,8 @@ function library:Window(Info)
                 if Info.Flag then library._flagSetters[Info.Flag] = setValue end
                 task.defer(function() pcall(Info.Callback, val) end)
             end
-function sectionApi:Dropdown(Info)
+
+            function sectionApi:Dropdown(Info)
                 Info = Info or {}
                 local list = Info.List or {}
                 local opened = false
