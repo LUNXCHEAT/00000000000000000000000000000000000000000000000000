@@ -1101,10 +1101,11 @@ function library:Window(Info)
                     Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -16, 0, 7), Parent = row,
                 })
                 
+                -- Container'ı hep Visible tutuyoruz, ClipsDescendants kapalıyken dışarı taşmasını engelliyor
                 local container = Create("Frame", {
-                    BackgroundColor3 = th2.Surface, BackgroundTransparency = 0.05, -- Arkaplanı görünür yapıldı
+                    BackgroundColor3 = th2.Surface, BackgroundTransparency = 0.05,
                     ClipsDescendants = true, Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0, 28), Parent = row,
-                    Visible = false,
+                    Visible = true,
                 })
                 Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = container })
                 Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = container })
@@ -1126,9 +1127,6 @@ function library:Window(Info)
                         Tween(row, { Size = UDim2.new(1, 0, 0, 28) }, 0.2)
                         Tween(container, { Size = UDim2.new(1, 0, 0, 0) }, 0.2)
                         Tween(arrow, { Rotation = 90 }, 0.2)
-                        task.delay(0.2, function()
-                            if not opened then container.Visible = false end
-                        end)
                         resizeSection()
                     end,
                 }
@@ -1137,7 +1135,7 @@ function library:Window(Info)
                 function api:Add(text)
                     dropH += 26
                     local opt = Create("TextButton", {
-                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "  " .. text, -- Metne hafif boşluk eklendi
+                        BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "  " + text, -- Eğer + işareti hata verirse "  " .. text yapabilirsin
                         TextColor3 = th2.TextMuted, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
                         Size = UDim2.new(1, 0, 0, 26), Parent = container,
                     })
@@ -1169,7 +1167,6 @@ function library:Window(Info)
                                 tr.close()
                             end
                         end
-                        container.Visible = true
                     end
                     
                     local targetH = opened and dropH or 0
@@ -1178,12 +1175,6 @@ function library:Window(Info)
                         Size = UDim2.new(1, 0, 0, targetH),
                     }, 0.22, Enum.EasingStyle.Quint)
                     
-                    if not opened then
-                        task.delay(0.22, function()
-                            if not opened then container.Visible = false end
-                        end)
-                    end
-
                     Tween(arrow, { Rotation = opened and -90 or 90, TextColor3 = opened and GetTheme().Accent or GetTheme().TextMuted }, 0.22)
                     resizeSection()
                 end)
