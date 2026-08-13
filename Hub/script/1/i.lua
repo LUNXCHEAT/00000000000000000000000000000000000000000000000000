@@ -537,10 +537,10 @@ function library:Window(Info)
         Parent = main,
     })
     
-    Create("UIAspectRatioConstraint", {
-        AspectRatio = 1,
-        Parent = mascot,
-    })
+    -- Kütüphanenin Create fonksiyonunu atlayıp direkt saf Instance.new kullanıyoruz:
+    local ratio = Instance.new("UIAspectRatioConstraint")
+    ratio.AspectRatio = 1
+    ratio.Parent = mascot
 
     library.Mascot = mascot
 
