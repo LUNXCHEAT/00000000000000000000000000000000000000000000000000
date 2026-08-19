@@ -777,7 +777,6 @@ function library:Window(Info)
 
     local mascotSize = GetMascotSize()
     
-    -- GitHub linkini Roblox'un okuyabileceği formata çeviren fonksiyon
     local function getGithubImage(url)
         if type(url) == "string" and url:match("^https?://") then
             local success, res = pcall(function()
@@ -799,15 +798,28 @@ function library:Window(Info)
         Image = getGithubImage(theme.MascotImage),
         ScaleType = Enum.ScaleType.Fit,
         AnchorPoint = Vector2.new(1, 1),
-        Position = UDim2.new(1, -20, 1, -20),
+        Position = UDim2.new(1, -10, 1, -10), -- Tam sağ aşağıda (kenardan 10 piksel içeride)
         Size = UDim2.new(0, mascotSize, 0, mascotSize),
         ZIndex = 10,
         ImageTransparency = 1,
         Parent = mascotGui,
     })
+    
     local ratio = Instance.new("UIAspectRatioConstraint")
     ratio.AspectRatio = 1
     ratio.Parent = mascot
+
+    -- Her seferinde boyut değişimlerini otomatik kontrol edip güncelleyen döngü
+    task.spawn(function()
+        while mascot and mascot.Parent do
+            local newSize = GetMascotSize()
+            if mascot.Size ~= UDim2.new(0, newSize, 0, newSize) then
+                mascot.Size = UDim2.new(0, newSize, 0, newSize)
+            end
+            task.wait(0.5) -- Her yarım saniyede bir boyutu kontrol eder
+        end
+    end)
+
     library.Mascot = mascot
     library:RegisterThemeTarget(mascot, "MascotImage")
 
