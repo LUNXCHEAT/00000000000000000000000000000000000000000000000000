@@ -776,10 +776,27 @@ function library:Window(Info)
     library.MascotGui = mascotGui
 
     local mascotSize = GetMascotSize()
+    
+    -- GitHub linkini Roblox'un okuyabileceği formata çeviren fonksiyon
+    local function getGithubImage(url)
+        if type(url) == "string" and url:match("^https?://") then
+            local success, res = pcall(function()
+                return game:HttpGet(url)
+            end)
+            if success and res and writefile and getcustomasset then
+                local fileName = "lunx_temp_mascot_" .. tick() .. ".png"
+                writefile(fileName, res)
+                local assetPath = getcustomasset(fileName)
+                return assetPath
+            end
+        end
+        return url
+    end
+
     local mascot = Create("ImageLabel", {
         Name = "Mascot",
         BackgroundTransparency = 1,
-        Image = theme.MascotImage,
+        Image = getGithubImage(theme.MascotImage),
         ScaleType = Enum.ScaleType.Fit,
         AnchorPoint = Vector2.new(1, 1),
         Position = UDim2.new(1, -20, 1, -20),
